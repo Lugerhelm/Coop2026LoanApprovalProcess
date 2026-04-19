@@ -22,13 +22,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LoanApplicationService {
 
-
+    // Repod
     private final LoanApplicationRepository repository;
     private final PaymentScheduleRepository paymentScheduleRepository;
 
     @Value("${loan.limits.max-age}")
     private int maxAgeLimit;
 
+    // Loome uue laenutaotluse, salvestame selle ning liigume edasi vanuse ja isikukoodi kontrolli
     @Transactional
     public LoanApplication createApplication(LoanApplicationRequest request) {
         List<Status> activeStatuses = List.of(Status.STARTED, Status.IN_REVIEW);
@@ -46,9 +47,12 @@ public class LoanApplicationService {
 
         newApp.setStatus(Status.STARTED);
 
+        newApp = repository.save(newApp);
+
         return processApplication(newApp);
     }
 
+    // Vanuse ja isikukoodi kontroll, läbimisel loome graafiku
     @Transactional
     public LoanApplication processApplication(LoanApplication application) {
         application.setStatus(Status.STARTED);
@@ -72,6 +76,7 @@ public class LoanApplicationService {
 
     }
 
+    // IN_REVIEW taotluse staatuse muutmine
     @Transactional
     public LoanApplication updateStatus(Long id, Status status, String reason) {
         LoanApplication app = repository.findById(id)
@@ -80,7 +85,9 @@ public class LoanApplicationService {
         if (app.getStatus() != Status.IN_REVIEW) {
             throw new IllegalStateException("Only applications in review can be finalized.");
         }
-
+        if (status == Status.IN_REVIEW || status == Status.STARTED) {
+            throw new IllegalStateException("IN_REVIEW application can be set only to REJECTED or APPROVED.");
+        }
         app.setStatus(status);
         if (status == Status.REJECTED) {
             app.setRejectionReason(reason != null ? reason : "MANUALLY_REJECTED");
@@ -89,12 +96,20 @@ public class LoanApplicationService {
         return repository.save(app);
     }
 
+    // Annuiteedigraafiku loomine, arvutamine ja andmebaasi salvestamine
     public void generateSchedule(LoanApplication application) {
         Integer loanPeriodMonths = application.getLoanPeriodMonths();
+        if (loanPeriodMonths == null || loanPeriodMonths <= 0) {
+            throw new IllegalArgumentException("Loan period months must be greater than 0.");
+        }
         BigDecimal interestMargin = application.getInterestMargin();
         BigDecimal baseInterestRate = application.getBaseInterestRate();
-        BigDecimal annualRate = baseInterestRate.add(interestMargin);
+        BigDecimal annualRate = (interestMargin != null ? interestMargin : BigDecimal.ZERO)
+                .add(baseInterestRate != null ? baseInterestRate : BigDecimal.ZERO);
 
+        if (annualRate.equals(BigDecimal.ZERO)) {
+            throw new IllegalArgumentException("Annual rate must be greater than 0.");
+        }
         double monthlyRate = annualRate.divide(BigDecimal.valueOf(12),10,  RoundingMode.HALF_UP)
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
                 .doubleValue();
@@ -120,6 +135,7 @@ public class LoanApplicationService {
 
     }
 
+    // Saame kõik taotlused
     public List<LoanApplication> getAllApplications() {
         return repository.findAll();
     }

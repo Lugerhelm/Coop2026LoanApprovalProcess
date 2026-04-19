@@ -3,7 +3,9 @@ package org.example.util;
 import java.time.LocalDate;
 import java.time.Period;
 
-
+/**
+ * Isikukoodi töötlemise klass
+ */
 public class PersonalCodeUtil {
 
     public static LocalDate extractBirthDate(String personalCode) {

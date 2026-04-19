@@ -7,6 +7,7 @@ import org.example.util.Status;
 
 import java.math.BigDecimal;
 
+// Laenu taotluse info
 @Entity
 @Getter
 @Setter

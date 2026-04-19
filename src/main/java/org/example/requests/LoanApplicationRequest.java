@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+// Taotluse info DTO
 @Data
 public class LoanApplicationRequest {
     @NotBlank(message = "First name is mandatory")

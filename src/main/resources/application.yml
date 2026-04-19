@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/loan_db
+    username: user
+    password: password
+  liquibase:
+    change-log: classpath:config/liquibase/master.xml
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+loan:
+  limits:
+    max-age: ${LOAN_MAX_AGE:70}

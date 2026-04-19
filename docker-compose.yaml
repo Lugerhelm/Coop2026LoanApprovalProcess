@@ -1,0 +1,33 @@
+services:
+  # Database Service
+  db:
+    image: postgres:16-alpine
+    container_name: coop-db
+    environment:
+      POSTGRES_DB: loan_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d loan_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend Application Service
+  app:
+    build: .
+    container_name: coop-backend
+    ports:
+      - "8080:8080" # The application must be available on port 8080
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/loan_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_LIQUIBASE_ENABLED: "true"
+      # Example of the configurable age limit requirement
+      LOAN_MAX_AGE: 70
